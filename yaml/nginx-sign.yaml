@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-sign
+  labels:
+    app: nginx-sign
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-sign
+  template:
+    metadata:
+      labels:
+        app: nginx-sign
+    spec:
+      nodeSelector:
+        disktype: worker2  # 노드 셀렉터
+      containers:
+      - name: nginx
+        image: kku9/nginx-sign:v1.48  # 이미지 위치 수정
+        volumeMounts:
+        - name: data
+          mountPath: /usr/share/nginx/html
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 120
+          periodSeconds: 60
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+      volumes:
+      - name: data
+        hostPath:
+          path: /var/local/data
+          type: Directory
+            
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-sign
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 80
+    nodePort: 30300
+    protocol: TCP
+  selector:
+    app: nginx-sign

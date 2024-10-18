@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tomcat-main
+  labels:
+    app: tomcat-main
+spec:
+  progressDeadlineSeconds: 600
+  revisionHistoryLimit: 10
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  replicas: 3
+  selector:
+    matchLabels:
+      app: tomcat-main
+  template:
+    metadata:
+      labels:
+        app: tomcat-main
+    spec:
+      nodeSelector:
+        disktype: worker3  # 노드 셀렉터
+      containers:
+      - name: was
+        image: kku9/was-sure:12
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-was-main
+spec:
+  type: ClusterIP
+  clusterIP: 10.110.0.100
+  ports:
+  - port: 8080
+    targetPort: 8080
+  selector:
+    app: tomcat-main
